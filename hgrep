@@ -1,0 +1,64 @@
+#!/bin/bash
+
+function stripMetaUrl {
+  echo -n "$1" | sed -e 's/.*URL=//' | sed -e "s/[\"'].*//"
+}
+
+function stripUrl {
+  echo -n "$1" | egrep -io http://\([a-z]+\\.\)*[a-z]+\(/[^\ ]*\)? 
+}
+
+function stripTrailingSlashes {
+  echo -n "$1" | sed -e 's/\/\{1,\}$//'
+}
+
+function stripLeadingSlashes {
+  echo -n "$1" | sed -e 's/^\/\{1,\}//'
+}
+
+function stripMetaRefresh {
+  cat $1 | grep -i \<meta | grep -i Refresh
+}
+
+# Make an HTTP connection to hostname(s) and grep the output.
+# Usage: hgrep <pattern> <URL(s)...>
+
+export TMPFILE="/tmp/`date +%s`.$RANDOM.tmp"
+export SUBTMPFILE="/tmp/`date +%s`.$RANDOM.tmp"
+alias CURL=""
+
+ARGV=( $@ )
+export PATTERN="$1"
+for url in ${ARGV[@]:1}; do
+  export url=`stripTrailingSlashes "$url"`
+  curl -s -m 10 --connect-timeout 1 "$url" > $TMPFILE && { 
+
+  ## First item of business: print out any matches
+    grep -i "$PATTERN" $TMPFILE | while read line; do
+      if [ ${#ARGV[@]:1} -gt 2 ]; then
+        test -n "$line" && echo -e "$url:$line"
+      else
+        test -n "$line" && echo -e "$line"
+      fi
+    done
+
+  ## Second item of business: follow any META REFRESH's
+    stripMetaRefresh $TMPFILE | while read line; do
+      if [ -n "`stripUrl $line`" ]; then
+        export SUBURL="`stripUrl $line`"
+      else
+        export relpath="`stripMetaUrl \"$line\"`"
+        export relpath="`stripLeadingSlashes \"$relpath\"`"
+        export SUBURL="$url/$relpath"
+      fi
+
+      # Now fetch the URL we found in the original to check for matches.      
+      curl -s -m 10 --connect-timeout 1 "$SUBURL" > $SUBTMPFILE
+      grep -i "$PATTERN" $SUBTMPFILE | while read subline; do
+        test -n "$subline" && echo -e "$SUBURL:$subline"
+      done
+    done
+  }
+done # Loop over input URLs
+
+rm -f $TMPFILE $SUBTMPFILE
