@@ -6,58 +6,23 @@ import functools
 
 g_Files = dict()
 
-"""
-  The following is Shao-Chuan Wang's implementation of the LCS problem
-  modified for sequences of strings.
-
-  Available at: http://bit.ly/THtO36
-"""
-
-def cached(func):
-  cache = {}
-  def template(*args): #: template is wrapper; func is wrapped
-    strhash = ""
-    for arg in args:
-      tmp = ", ".join(arg)
-      strhash += tmp
-      strhash += "||"
-    key = (func, strhash)
-    try:
-      ret = cache[key]
-    except KeyError:
-      ret = func(*args)
-      cache[key] = ret
-    else:
-      pass
-    return ret
-
-  functools.update_wrapper(template, func)
-  return template
-
-@cached
 def LCSLength(str1, str2):
   if len(str1)==0 or len(str2)==0:
     return 0
-  if str1[-1] == str2[-1]:
-    return LCSLength(str1[:-1], str2[:-1])+1
-  else:
-    return max(LCSLength(str1, str2[:-1]), LCSLength(str1[:-1], str2))
 
-@cached
-def LCS(str1, str2):
-  if len(str1)==0 or len(str2)==0:
-    return []
-  if str1[-1] == str2[-1]:
-    return LCS(str1[:-1], str2[:-1]) + [str1[-1]]
-  else:
-    candidate1 = LCS(str1[:-1], str2)
-    candidate2 = LCS(str1, str2[:-1])
-    if len(candidate1) >= len(candidate2):
-      return candidate1
-    else:
-      return candidate2
+  def lookup(i, j, t):
+    if i < 0 or j < 0: return 0
+    return t[i][j]
 
-""" END LCS IMPLEMENTATION """
+  table = [ [0]*len(str2) ] * len(str1)
+
+  for i in range(len(str1)):
+    for j in range(len(str2)):
+      if str1[i] == str2[j]:
+        table[i][j] = lookup(i-1,j-1,table) + 1
+      else:
+        table[i][j] = max(lookup(i-1, j, table), lookup(i, j-1, table))
+  return table[-1][-1]
 
 def filter_lines(filename):
   global g_Files
@@ -74,10 +39,8 @@ def filter_lines(filename):
   return linebuffer
 
 def score(a, b):
-  file1 = filter_lines(a)
-  file2 = filter_lines(b)
-  maxLines = max( len(file1), len(file2) )
-  lcs = LCSLength(file1,file2)
+  maxLines = max( len(a), len(b) )
+  lcs = LCSLength(a,b)
   return float(lcs) / maxLines
 
 def main():
@@ -88,10 +51,10 @@ def main():
   files = sys.argv[1:]
 
   for i in range( len(files) ):
+    a = filter_lines(files[i])
     for j in range(i+1, len(files) ):
-      a = files[i]
-      b = files[j]
-      print "%f %s %s" % (score(a,b), a, b)
+      b = filter_lines(files[j])
+      print "%f %s %s" % (score(a,b), files[i], files[j])
 
 if __name__ == "__main__":
   main()
