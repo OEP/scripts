@@ -73,22 +73,25 @@ def filter_lines(filename):
   fp.close()
   return linebuffer
 
-
 def score(a, b):
-  return 1.0
+  file1 = filter_lines(a)
+  file2 = filter_lines(b)
+  maxLines = max( len(file1), len(file2) )
+  lcs = LCSLength(file1,file2)
+  return float(lcs) / maxLines
 
 def main():
-  if len(sys.argv) != 3:
-    print "Usage: %s <file1> <file2>" % sys.argv[0]
+  if len(sys.argv) < 3:
+    print "Usage: %s <file1> <file2>..." % sys.argv[0]
     sys.exit(1)
   
   files = sys.argv[1:]
 
-  print LCSLength(filter_lines(files[0]), filter_lines(files[1]))
-
   for i in range( len(files) ):
     for j in range(i+1, len(files) ):
-      pass
+      a = files[i]
+      b = files[j]
+      print "%f %s %s" % (score(a,b), a, b)
 
 if __name__ == "__main__":
   main()
