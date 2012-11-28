@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+
+"""
+  Try to output useful stuff to know about a sequence of frames.
+
+  Output should be useful for piping into other utilities.
+"""
+
+import sys
+import string
+
+__author__ = "Paul Kilgo"
+
+LOG_LABELS = ["debug", "info", "warn", "error"]
+LOG_LEVEL = 0
+
+def printUsage():
+  print("Usage: %s <frame1> <frame2>..." % sys.argv[0])
+
+def splitAll(filenames):
+  return map(lambda x: string.split(x, ".", 2), filenames)
+
+def log(loglevel, message):
+  if loglevel >= LOG_LEVEL:
+    loglevel = min(loglevel, len(LOG_LABELS) - 1)
+    print "%s: %s" % (LOG_LABELS[loglevel], message)
+
+def warn(msg):
+  log(2, msg)
+
+def construct_seqname(fparts):
+  return "%s.%s" % (fparts[0], fparts[2])
+
+def new_seqinfo(fparts):
+  return {
+      "seqname": construct_seqname(fparts),
+      "seqbase": fparts[0],
+      "seqext": fparts[2],
+      "maxframe": int(fparts[1]),
+      "framepad": len(fparts[1]),
+      "minframe": int(fparts[1]),
+      "frameset": set([int(fparts[1])])
+  }
+
+def frame_pad_format(seqinfo):
+  return "%%0%dd" % seqinfo["framepad"]
+
+def frame_pad(seqinfo, frame):
+  return frame_pad_format(seqinfo) % frame
+
+def fetch_seqinfos(filenames):
+  seqinfos = dict()
+  for fparts in splitAll(filenames):
+    if len(fparts) != 3:
+      warn(".".join(fparts) + " does not follow proper filename format")
+      continue
+
+    filename = ".".join(fparts)
+    seqname = construct_seqname(fparts) 
+    seqinfo = seqinfos.setdefault(seqname, new_seqinfo(fparts))
+    frame = int(fparts[1])
+    framepad = len(fparts[1])
+    frameset = seqinfo["frameset"]
+
+    seqinfo["maxframe"] = max(frame, seqinfo["maxframe"])
+    seqinfo["minframe"] = min(frame, seqinfo["minframe"])
+
+    if seqinfo["framepad"] != framepad:
+      warn("'%s' does not have same frame padding as sequence (%d)"
+        % (filename, seqinfo["framepad"]))
+
+    frameset |= set([frame])
+  return seqinfos
+
+def print_missing_frames(filenames):
+  seqinfos = fetch_seqinfos(filenames)
+  multiple = len(seqinfos) > 1
+
+  for (seqname, seqinfo) in seqinfos.items():
+    minframe = seqinfo["minframe"]
+    maxframe = seqinfo["maxframe"]
+    minframe = min(1, minframe)
+    frameset = seqinfo["frameset"]
+    for i in range(1, maxframe+1):
+      if i not in frameset:
+        if multiple:
+          print ("%s: " + frame_pad_format(seqinfo)) % (seqname, i)
+        else:
+          print frame_pad_format(seqinfo) % i
+
+def main():
+  if len(sys.argv) == 1:
+    printUsage()
+    sys.exit(1)
+
+  print_missing_frames(sys.argv[1:])
+  
+if __name__ == "__main__":
+  main()
