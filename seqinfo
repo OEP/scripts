@@ -18,7 +18,7 @@ def printUsage():
   print("Usage: %s <frame1> <frame2>..." % sys.argv[0])
 
 def splitAll(filenames):
-  return map(lambda x: string.split(x, ".", 2), filenames)
+  return map(lambda x: string.rsplit(x, ".", 2), filenames)
 
 def log(loglevel, message):
   if loglevel >= LOG_LEVEL:
