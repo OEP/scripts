@@ -10,17 +10,15 @@ def printUsage():
 def texturize(im):
   (width, height, depth) = im.shape
 
-  rightHalf = np.zeros((width, height, depth))
-  bottomHalf = np.zeros((2*width, height, depth))
-  resize = np.append(im, rightHalf, 0)
-  resize = np.append(resize, bottomHalf, 1)
+  im = np.append(im, np.zeros((width, height, depth)), 0)
+  im = np.append(im, np.zeros((2*width, height, depth)), 1)
 
   out = np.zeros((width*2, height*2, depth))
 
-  out = cv2.add(out, resize)
-  out = cv2.add(out, cv2.flip(resize, 0))
-  out = cv2.add(out, cv2.flip(resize, 1))
-  out = cv2.add(out, cv2.flip(resize, -1))
+  out = cv2.add(out, im)
+  out = cv2.add(out, cv2.flip(im, 0))
+  out = cv2.add(out, cv2.flip(im, 1))
+  out = cv2.add(out, cv2.flip(im, -1))
   
   return out
 
