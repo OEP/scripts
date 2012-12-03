@@ -15,6 +15,9 @@ __author__ = "Paul Kilgo"
 LOG_LABELS = ["debug", "info", "warn", "error"]
 LOG_LEVEL = 0
 
+MODE_INFO = 1
+MODE_MISSING = 2
+
 class Sequence:
   def __init__(self, fparts):
     self._name = construct_seqname(fparts)
@@ -123,13 +126,28 @@ def print_summaries(seqinfos):
 
 
 def main():
-  if len(sys.argv) == 1:
-    printUsage()
-    sys.exit(1)
+  parser = get_argparser()
+  parsed = parser.parse_args(sys.argv[1:])
 
-  seqinfos = fetch_seqinfos(sys.argv[1:])
-  print_summaries(seqinfos)
-  print_missing_frames(seqinfos)
+  seqinfos = fetch_seqinfos(parsed.frames)
+
+  if parsed.mode == MODE_MISSING:
+    print_missing_frames(seqinfos)
+  else:
+    print_summaries(seqinfos)
+
+def get_argparser():
+  parser = argparse.ArgumentParser(
+    description='Print information about a sequence of images.')
+  parser.add_argument('frames', metavar='frame', nargs='+',
+    help='a frame in the frame sequence')
+
+  parser.add_argument('-m', '--print-missing', action='store_const',
+    dest='mode', const=MODE_MISSING,
+    help='print missing frames in frame sequence')
+
+  return parser
+
 
 if __name__ == "__main__":
   main()
