@@ -8,11 +8,65 @@
 
 import sys
 import string
+import argparse
 
 __author__ = "Paul Kilgo"
 
 LOG_LABELS = ["debug", "info", "warn", "error"]
 LOG_LEVEL = 0
+
+class Sequence:
+  def __init__(self, fparts):
+    self._name = construct_seqname(fparts)
+    self._base = fparts[0]
+    self._ext = fparts[2]
+    self._maxframe = int(fparts[1])
+    self._minframe = int(fparts[1])
+    self._frameset = { int(fparts[1]) }
+    self._framepad = len(fparts[1])
+
+  def _assert_belongs(self, fparts):
+    if fparts[0] != self.get_base():
+      raise ValueError("sequence names do not match: want `%s` got `%s`" % \
+        (self.get_name(), fparts[0]))
+    if len(fparts[1]) != self.get_framepad():
+      raise ValueError("frame pads do not match: want `%d` got `%d`" % \
+        (self.get_framepad(), len(fparts[1])))
+    if fparts[2] != self.get_ext():
+      raise ValueError("extensions do not match: want `%s` got `%s`" % \
+        (self.get_ext(), fparts[2]))
+
+  def add_frame(self, fparts):
+    self._assert_belongs(fparts)
+    frame = int(fparts[1])
+    self._frameset |= { frame }
+    self._maxframe = max(self._maxframe, frame)
+    self._minframe = min(self._minframe, frame)
+
+  def get_name(self): return self._name
+
+  def get_base(self): return self._base
+
+  def get_framepad(self): return self._framepad
+
+  def get_ext(self): return self._ext
+
+  def get_minframe(self): return self._minframe
+
+  def get_maxframe(self): return self._maxframe
+
+  def get_missing(self):
+    return set(range(self._minframe, self._maxframe+1)) - self._frameset
+
+  def get_framepad_format(self):
+    return "%%0%dd" % self._framepad
+
+  def pad_frame(self, frame):
+    return self.get_framepad_format() % frame
+
+  def count_missing(self):
+    return len(self.get_missing())
+    
 
 def printUsage():
   print("Usage: %s <frame1> <frame2>..." % sys.argv[0])
@@ -31,23 +85,6 @@ def warn(msg):
 def construct_seqname(fparts):
   return "%s.%s" % (fparts[0], fparts[2])
 
-def new_seqinfo(fparts):
-  return {
-      "seqname": construct_seqname(fparts),
-      "seqbase": fparts[0],
-      "seqext": fparts[2],
-      "maxframe": int(fparts[1]),
-      "framepad": len(fparts[1]),
-      "minframe": int(fparts[1]),
-      "frameset": set([int(fparts[1])])
-  }
-
-def frame_pad_format(seqinfo):
-  return "%%0%dd" % seqinfo["framepad"]
-
-def frame_pad(seqinfo, frame):
-  return frame_pad_format(seqinfo) % frame
-
 def fetch_seqinfos(filenames):
   seqinfos = dict()
   for fparts in splitAll(filenames):
@@ -57,43 +94,42 @@ def fetch_seqinfos(filenames):
 
     filename = ".".join(fparts)
     seqname = construct_seqname(fparts) 
-    seqinfo = seqinfos.setdefault(seqname, new_seqinfo(fparts))
-    frame = int(fparts[1])
-    framepad = len(fparts[1])
-    frameset = seqinfo["frameset"]
+    seqinfo = seqinfos.setdefault(seqname, Sequence(fparts))
 
-    seqinfo["maxframe"] = max(frame, seqinfo["maxframe"])
-    seqinfo["minframe"] = min(frame, seqinfo["minframe"])
-
-    if seqinfo["framepad"] != framepad:
-      warn("'%s' does not have same frame padding as sequence (%d)"
-        % (filename, seqinfo["framepad"]))
-
-    frameset |= set([frame])
+    seqinfo.add_frame(fparts)
   return seqinfos
 
-def print_missing_frames(filenames):
-  seqinfos = fetch_seqinfos(filenames)
+def print_missing_frames(seqinfos):
   multiple = len(seqinfos) > 1
 
   for (seqname, seqinfo) in seqinfos.items():
-    minframe = seqinfo["minframe"]
-    maxframe = seqinfo["maxframe"]
-    minframe = min(1, minframe)
-    frameset = seqinfo["frameset"]
-    for i in range(1, maxframe+1):
-      if i not in frameset:
-        if multiple:
-          print ("%s: " + frame_pad_format(seqinfo)) % (seqname, i)
-        else:
-          print frame_pad_format(seqinfo) % i
+    for i in seqinfo.get_missing():
+      if multiple:
+        print ("%s: " + seqinfo.get_framepad_format()) % (seqname, i)
+      else:
+        print seqinfo.pad_frame(i)
+
+def print_summary(seqinfo, indent=0):
+  pad = " " * indent
+  print "%s" % seqinfo.get_name()
+  print "%sFirst frame: %d" % (pad, seqinfo.get_minframe())
+  print "%sLast frame: %d" % (pad, seqinfo.get_maxframe())
+  print "%sMissing frames: %d" % (pad, seqinfo.count_missing())
+
+def print_summaries(seqinfos):
+  indent = 2
+  for (name, seqinfo) in seqinfos.items():
+    print_summary(seqinfo, indent)
+
 
 def main():
   if len(sys.argv) == 1:
     printUsage()
     sys.exit(1)
 
-  print_missing_frames(sys.argv[1:])
-  
+  seqinfos = fetch_seqinfos(sys.argv[1:])
+  print_summaries(seqinfos)
+  print_missing_frames(seqinfos)
+
 if __name__ == "__main__":
   main()
