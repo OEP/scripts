@@ -25,7 +25,7 @@ class Sequence:
     self._ext = fparts[2]
     self._maxframe = int(fparts[1])
     self._minframe = int(fparts[1])
-    self._frameset = { int(fparts[1]) }
+    self._frameset = set([int(fparts[1])])
     self._framepad = len(fparts[1])
 
   def _assert_belongs(self, fparts):
@@ -42,7 +42,7 @@ class Sequence:
   def add_frame(self, fparts):
     self._assert_belongs(fparts)
     frame = int(fparts[1])
-    self._frameset |= { frame }
+    self._frameset |= set([frame])
     self._maxframe = max(self._maxframe, frame)
     self._minframe = min(self._minframe, frame)
 
