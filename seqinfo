@@ -13,10 +13,14 @@ import optparse
 __author__ = "Paul Kilgo"
 
 LOG_LABELS = ["debug", "info", "warn", "error"]
-LOG_LEVEL = 0
+LOG_LEVEL = 2
 
 MODE_INFO = 1
 MODE_MISSING = 2
+
+MODE_NOPAD = 1
+MODE_PAD = 2
+MODE_FILENAME = 3
 
 class Sequence:
   def __init__(self, fparts):
@@ -46,6 +50,11 @@ class Sequence:
     self._maxframe = max(self._maxframe, frame)
     self._minframe = min(self._minframe, frame)
 
+  def frame_filename(self, frame):
+    return "%s.%s.%s" % (self.get_base(),
+      self.pad_frame(frame),
+      self.get_ext())
+
   def get_name(self): return self._name
 
   def get_base(self): return self._base
@@ -58,17 +67,17 @@ class Sequence:
 
   def get_maxframe(self): return self._maxframe
 
-  def get_missing(self):
+  def missing(self):
     return set(range(self._minframe, self._maxframe+1)) - self._frameset
 
-  def get_framepad_format(self):
+  def framepad_format(self):
     return "%%0%dd" % self._framepad
 
   def pad_frame(self, frame):
-    return self.get_framepad_format() % frame
+    return self.framepad_format() % frame
 
   def count_missing(self):
-    return len(self.get_missing())
+    return len(self.missing())
     
 
 def printUsage():
@@ -102,15 +111,24 @@ def fetch_seqinfos(filenames):
     seqinfo.add_frame(fparts)
   return seqinfos
 
-def print_missing_frames(seqinfos):
+def format_frame_output(frame, seq, mode):
+  if mode == MODE_PAD:
+    return seq.pad_frame(frame)
+  elif mode == MODE_FILENAME:
+    return seq.frame_filename(frame)
+  else:
+    return str(frame)
+
+def print_missing_frames(seqinfos, mode=MODE_NOPAD):
   multiple = len(seqinfos) > 1
 
   for (seqname, seqinfo) in seqinfos.items():
-    for i in seqinfo.get_missing():
+    for i in seqinfo.missing():
+      out = format_frame_output(i, seqinfo, mode)
       if multiple:
-        print ("%s: " + seqinfo.get_framepad_format()) % (seqname, i)
+        print "%s: %s" % (seqname, out)
       else:
-        print seqinfo.pad_frame(i)
+        print out
 
 def print_summary(seqinfo, indent=0):
   pad = " " * indent
@@ -137,19 +155,22 @@ def main():
   seqinfos = fetch_seqinfos(args)
 
   if parsed.mode == MODE_MISSING:
-    print_missing_frames(seqinfos)
+    print_missing_frames(seqinfos, parsed.framemode)
   else:
     print_summaries(seqinfos)
 
 def get_argparser():
   parser = optparse.OptionParser(
     description='Print information about a sequence of images.')
+  parser.add_option('-0', '--pad', action='store_const', dest='framemode',
+    const=MODE_PAD, help='pad missing frames with zeros')
+  parser.add_option('-f', '--filename', action='store_const', dest='framemode',
+    const=MODE_FILENAME, help='print full filename of missing frame')
   parser.add_option('-m', '--print-missing', action='store_const',
     dest='mode', const=MODE_MISSING,
     help='print missing frames in frame sequence')
 
   return parser
-
 
 if __name__ == "__main__":
   main()
