@@ -13,7 +13,7 @@ import optparse
 __author__ = "Paul Kilgo"
 
 LOG_LABELS = ["debug", "info", "warn", "error"]
-LOG_LEVEL = 2
+gLogLevel = 3
 
 MODE_INFO = 1
 MODE_MISSING = 2
@@ -23,12 +23,12 @@ MODE_PAD = 2
 MODE_FILENAME = 3
 
 class Sequence:
-  def __init__(self, fparts):
+  def __init__(self, fparts, start, count):
     self._name = construct_seqname(fparts)
     self._base = fparts[0]
     self._ext = fparts[2]
-    self._maxframe = int(fparts[1])
-    self._minframe = int(fparts[1])
+    self._maxframe = max(int(fparts[1]), start+count)
+    self._minframe = min(int(fparts[1]), start)
     self._frameset = set([int(fparts[1])])
     self._framepad = len(fparts[1])
 
@@ -87,7 +87,7 @@ def splitAll(filenames):
   return map(lambda x: string.rsplit(x, ".", 2), filenames)
 
 def log(loglevel, message):
-  if loglevel >= LOG_LEVEL:
+  if loglevel >= gLogLevel:
     loglevel = min(loglevel, len(LOG_LABELS) - 1)
     print "%s: %s" % (LOG_LABELS[loglevel], message)
 
@@ -97,7 +97,7 @@ def warn(msg):
 def construct_seqname(fparts):
   return "%s.%s" % (fparts[0], fparts[2])
 
-def fetch_seqinfos(filenames):
+def fetch_seqinfos(filenames, start, count):
   seqinfos = dict()
   for fparts in splitAll(filenames):
     if len(fparts) != 3:
@@ -106,7 +106,7 @@ def fetch_seqinfos(filenames):
 
     filename = ".".join(fparts)
     seqname = construct_seqname(fparts) 
-    seqinfo = seqinfos.setdefault(seqname, Sequence(fparts))
+    seqinfo = seqinfos.setdefault(seqname, Sequence(fparts, start, count))
 
     seqinfo.add_frame(fparts)
   return seqinfos
@@ -119,7 +119,7 @@ def format_frame_output(frame, seq, mode):
   else:
     return str(frame)
 
-def print_missing_frames(seqinfos, mode=MODE_NOPAD):
+def print_missing_frames(seqinfos, mode):
   multiple = len(seqinfos) > 1
 
   for (seqname, seqinfo) in seqinfos.items():
@@ -144,6 +144,7 @@ def print_summaries(seqinfos):
 
 
 def main():
+  global gLogLevel
   parser = get_argparser()
   (parsed, args) = parser.parse_args(sys.argv[1:])
 
@@ -152,7 +153,9 @@ def main():
     parser.print_help()
     sys.exit(1)
 
-  seqinfos = fetch_seqinfos(args)
+  gLogLevel += (parsed.qcount - parsed.vcount)
+
+  seqinfos = fetch_seqinfos(args, parsed.start, parsed.count)
 
   if parsed.mode == MODE_MISSING:
     print_missing_frames(seqinfos, parsed.framemode)
@@ -162,13 +165,24 @@ def main():
 def get_argparser():
   parser = optparse.OptionParser(
     description='Print information about a sequence of images.')
+  parser.add_option('-s', '--start', action='store', dest='start',
+    default=1, type=int,
+    help="specifies the starting frame if not 1")
+  parser.add_option('-c', '--count', action='store', dest='count',
+    default=0, type=int,
+    help="specifies the number of frames (defaults to maximum frame)")
+  parser.add_option('-m', '--missing', action='store_const',
+    dest='mode', const=MODE_MISSING,
+    help='print missing frames in frame sequence')
   parser.add_option('-0', '--pad', action='store_const', dest='framemode',
     const=MODE_PAD, help='pad missing frames with zeros')
   parser.add_option('-f', '--filename', action='store_const', dest='framemode',
     const=MODE_FILENAME, help='print full filename of missing frame')
-  parser.add_option('-m', '--print-missing', action='store_const',
-    dest='mode', const=MODE_MISSING,
-    help='print missing frames in frame sequence')
+
+  parser.add_option('-q', '--quiet', action='count', dest='qcount', default=0,
+    help='print less information (use multiple times to be quieter)')
+  parser.add_option('-v', '--verbose', action='count', dest='vcount', default=0,
+    help='print more information (use multiple times to see more)')
 
   return parser
 
