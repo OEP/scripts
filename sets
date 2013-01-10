@@ -5,6 +5,10 @@ import os
 
 SETS_DIRECTORY = os.environ["HOME"] + "/.sets"
 
+OP_INTERSECT = 1
+OP_UNION = 2
+OP_DIFFERENCE = 3
+
 class Domain:
 
   UNIVERSE_FILE = 'all'
@@ -15,28 +19,66 @@ class Domain:
     self._subsets = None
     self._initialize()
 
+  def universe():
+    return set(self._universe)
+
+  def subset(name):
+    return self._subsets[name]
+
   def _initialize(self):
-    self._universe = self._toset(self._childpath(UNIVERSE_FILE))
+    self._universe = self._toset(self._childpath(Domain.UNIVERSE_FILE))
     self._subsets = dict()
 
     for path in os.listdir(self._path):
-      if path is UNIVERSE_FILE: continue
+      if path is Domain.UNIVERSE_FILE: continue
       if os.path.isfile(path):
         self._subsets[path] = self._toset(self._childpath(path))
 
+  def __iter__(self):
+    return self._universe.__iter__()
+
   def _childpath(self, path):
-    return self._path + "/" + path
+    return os.path.join(self._path, path)
 
   def _toset(self, path):
     out = set()
     with open(path) as fp:
       for line in fp:
         out |= set([line.strip()])
+    return out
+
+def dispatch(domain, current, item):
+  op = OP_INTERSECT
+
+  if current == None:
+    current = 
+
+  if item[0] == "@":
+    op = OP_UNION
+    item = item[1:]
+  elif item[0] == "-":
+    op = OP_DIFFERENCE
+    item = item[1:]
+
+
+def printUsage():
+  print("Usage: %s <set> [set1 [set2]]" % os.path.basename(sys.argv[0]))
 
 def main():
   global SETS_DIRECTORY
+
+  if len(sys.argv) < 2:
+    printUsage()
+    sys.exit(1)
   
-  
+  universeName = sys.argv[1]
+  ops = sys.argv[2:]
+
+  universe = Domain(os.path.join(SETS_DIRECTORY, universeName))
+  current = None
+
+  for i in ops:
+    op = OP_
 
 if __name__ == "__main__":
   main()
