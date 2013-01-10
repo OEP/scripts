@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+
+SETS_DIRECTORY = os.environ["HOME"] + "/.sets"
+
+class Domain:
+
+  UNIVERSE_FILE = 'all'
+  
+  def __init__(self, domainPath):
+    self._path = domainPath
+    self._universe = None
+    self._subsets = None
+    self._initialize()
+
+  def _initialize(self):
+    self._universe = self._toset(self._childpath(UNIVERSE_FILE))
+    self._subsets = dict()
+
+    for path in os.listdir(self._path):
+      if path is UNIVERSE_FILE: continue
+      if os.path.isfile(path):
+        self._subsets[path] = self._toset(self._childpath(path))
+
+  def _childpath(self, path):
+    return self._path + "/" + path
+
+  def _toset(self, path):
+    out = set()
+    with open(path) as fp:
+      for line in fp:
+        out |= set([line.strip()])
+
+def main():
+  global SETS_DIRECTORY
+  
+  
+
+if __name__ == "__main__":
+  main()
