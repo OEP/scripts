@@ -3,6 +3,14 @@
 import sys
 import os
 
+SETS_SEARCH = [
+  "sets",
+  ".sets",
+  os.envrion["HOME"] + "sets",
+  os.envrion["HOME"] + ".sets",
+
+]
+
 SETS_DIRECTORY = os.environ["HOME"] + "/.sets"
 
 OP_INTERSECT = 1
