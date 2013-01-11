@@ -3,19 +3,20 @@
 import sys
 import os
 
-SETS_SEARCH = [
-  "sets",
-  ".sets",
-  os.envrion["HOME"] + "sets",
-  os.envrion["HOME"] + ".sets",
-
-]
-
+SETS_SEARCH = []
 SETS_DIRECTORY = os.environ["HOME"] + "/.sets"
 
-OP_INTERSECT = 1
-OP_UNION = 2
-OP_DIFFERENCE = 3
+def initialize_search_path(dirName):
+  global SETS_SEARCH
+  SETS_SEARCH.append(dirName)
+  SETS_SEARCH.append(".%s" % dirName)
+  SETS_SEARCH.append("%s/%s" % (os.environ['HOME'], dirName))
+  SETS_SEARCH.append("%s/.%s" % (os.environ['HOME'], dirName))
+  
+  if "SETS_DIRECTORY" in os.environ:
+    SETS_SEARCH.append(os.environ['SETS_DIRECTORY'])
+
+  SETS_SEARCH.append('/usr/share/%s' % dirName)
 
 class Domain:
 
