@@ -19,10 +19,10 @@ class Domain:
     self._subsets = None
     self._initialize()
 
-  def universe():
+  def universe(self):
     return set(self._universe)
 
-  def subset(name):
+  def subset(self, name):
     return self._subsets[name]
 
   def _initialize(self):
@@ -31,8 +31,9 @@ class Domain:
 
     for path in os.listdir(self._path):
       if path is Domain.UNIVERSE_FILE: continue
-      if os.path.isfile(path):
-        self._subsets[path] = self._toset(self._childpath(path))
+      fullpath = self._childpath(path)
+      if os.path.isfile(fullpath):
+        self._subsets[path] = self._toset(fullpath)
 
   def __iter__(self):
     return self._universe.__iter__()
@@ -48,17 +49,19 @@ class Domain:
     return out
 
 def dispatch(domain, current, item):
-  op = OP_INTERSECT
-
   if current == None:
-    current = 
+    current = domain.universe()
 
   if item[0] == "@":
-    op = OP_UNION
     item = item[1:]
+    current |= domain.subset(item)
   elif item[0] == "-":
-    op = OP_DIFFERENCE
     item = item[1:]
+    current -= domain.subset(item)
+  else:
+    current &= domain.subset(item)
+
+  return current
 
 
 def printUsage():
@@ -74,11 +77,14 @@ def main():
   universeName = sys.argv[1]
   ops = sys.argv[2:]
 
-  universe = Domain(os.path.join(SETS_DIRECTORY, universeName))
-  current = None
+  domain = Domain(os.path.join(SETS_DIRECTORY, universeName))
+  current = domain.universe()
 
-  for i in ops:
-    op = OP_
+  for op in ops:
+    current = dispatch(domain, current, op)
+
+  for item in current:
+    print(item)
 
 if __name__ == "__main__":
   main()
