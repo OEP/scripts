@@ -4,7 +4,65 @@ import sys
 import os
 
 SETS_SEARCH = []
-SETS_DIRECTORY = os.environ["HOME"] + "/.sets"
+
+USAGE_STRING = """sets - perform various set-theoretic operations
+
+USAGE
+
+sets <domainName> [<exp1> [<exp2> ...]]
+
+where exp* is an expression that looks like this regular expression:
+
+[@-]?<subset-name>
+
+The '@' character implies you wish to use the set union operator, and the '-'
+implies you wish to use the set difference operator. The lack of the character
+implies a set intersection operator.
+
+Providing no optional arguments implies you wish for all of the domain members
+to be returned (the universal set).
+
+Currently there is no concept of order of operations. All operations are
+assigned the same priority and are left-associative.
+
+OUTPUT
+
+Sets will output a newline-delimited list of the members of the requested
+operation in no particular order.
+
+EXAMPLES
+
+$> sets foo
+
+Print all the members of the 'foo' domain.
+
+$> sets foo -bar
+
+Print everything in 'foo' which is not in 'bar'.
+
+$> sets foo bar baz @bang
+
+Print everything in the intersection of 'bar' and 'baz', then add back the
+members of 'bang'.
+
+FILES
+
+Sets will search a predetermined set of paths to discover the domains
+requested. It searches the following directories:
+
+  1. sets/
+  2. ./sets/
+  3. $HOME/sets/
+  4. $HOME/.sets/
+  5. $SETS_DIRECTORY (if defined)
+  6. /usr/share/sets
+
+Within one of these directories, sets looks for a directory which matches the
+name of the requested domain. Within this directory, it looks for an 'all'
+file, where it expects to find a newline-delimited file containing all of the
+members of that domain. All other files formatted the same way are the named
+subsets of the domain.
+"""
 
 def initialize_search_path(dirName):
   global SETS_SEARCH
@@ -17,6 +75,14 @@ def initialize_search_path(dirName):
     SETS_SEARCH.append(os.environ['SETS_DIRECTORY'])
 
   SETS_SEARCH.append('/usr/share/%s' % dirName)
+
+def find_domain(name):
+  global SETS_SEARCH
+
+  for path in SETS_SEARCH:
+    fullpath = os.path.join(path, name)
+    if os.path.isdir(fullpath):
+      return Domain(fullpath)
 
 class Domain:
 
@@ -47,6 +113,9 @@ class Domain:
   def __iter__(self):
     return self._universe.__iter__()
 
+  def __contains__(self, item):
+    return item in self._subsets
+
   def _childpath(self, path):
     return os.path.join(self._path, path)
 
@@ -57,36 +126,50 @@ class Domain:
         out |= set([line.strip()])
     return out
 
+def assert_exists(item, domain):
+  if not item in domain:
+    sys.stderr.write('sets: no subset `%s` found in domain\n' % item)
+    sys.exit(3)
+
 def dispatch(domain, current, item):
   if current == None:
     current = domain.universe()
 
   if item[0] == "@":
     item = item[1:]
+    assert_exists(item, domain)
     current |= domain.subset(item)
   elif item[0] == "-":
     item = item[1:]
+    assert_exists(item, domain)
     current -= domain.subset(item)
   else:
+    assert_exists(item, domain)
     current &= domain.subset(item)
 
   return current
 
 
 def printUsage():
-  print("Usage: %s <set> [set1 [set2]]" % os.path.basename(sys.argv[0]))
+  global USAGE_STRING
+  print(USAGE_STRING)
 
 def main():
-  global SETS_DIRECTORY
-
   if len(sys.argv) < 2:
     printUsage()
     sys.exit(1)
+
+  initialize_search_path("sets")
   
   universeName = sys.argv[1]
   ops = sys.argv[2:]
 
-  domain = Domain(os.path.join(SETS_DIRECTORY, universeName))
+  domain = find_domain(universeName)
+
+  if domain == None:
+    sys.stderr.write("sets: no domain found with name `%s`\n" % universeName)
+    sys.exit(2)
+  
   current = domain.universe()
 
   for op in ops:
