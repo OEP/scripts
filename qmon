@@ -13,7 +13,7 @@ function printHelp() {
   echo "Monitor PBS jobs semi-interactively."
   echo >> $1
   echo "By default, prints a list of running jobs at the top and a" >> $1
-  echo "total count for the jobs matching the query."
+  echo "total count for the jobs matching the query." >> $1
   echo >> $1
   echo "Options:" >> $1
   echo "  -r  Set refresh interval (seconds)" >> $1
