@@ -1,0 +1,75 @@
+#!/bin/bash
+name="`basename $0`"
+states=R
+batch=
+query=''
+refresh=30
+
+function printUsage() {
+  echo "Usage: $name [-hb] [-r interval] [[--] query]" >> $1
+}
+
+function printHelp() {
+  echo "Monitor PBS jobs semi-interactively."
+  echo >> $1
+  echo "By default, prints a list of running jobs at the top and a" >> $1
+  echo "total count for the jobs matching the query."
+  echo >> $1
+  echo "Options:" >> $1
+  echo "  -r  Set refresh interval (seconds)" >> $1
+  echo "  -s  States of jobs to show in task list" >> $1
+  echo "  -b  Batch mode (no refresh)" >> $1
+  echo "  -h  Show this help message" >> $1
+  echo >> $1
+  echo "Refresh interval is ignored in batch mode." >> $1
+  echo >> $1
+  echo "The query may be any arguments to give to both qselect and qstat." >>$1
+  echo >> $1
+  echo "If no query is given, monitor current user's jobs." >> $1
+  echo >> $1
+  echo "Note that if you use a custom query involving flags, you must escape" >> $1
+  echo "them using --." >> $1
+  echo >> $1
+  echo "Examples:" >> $1
+  echo "  Change refresh rate to 45 seconds:" >> $1
+  echo "  $> $name -r 45" >> $1
+  echo "  Monitor two users' jobs:" >> $1
+  echo "  $> $name -- -u user1,user2" >> $1
+}
+
+while getopts 'hbr:' opt; do
+  case $opt in
+    r) refresh="$OPTARG" ;;
+    s) states="$OPTARG" ;;
+    b) batch=1 ;;
+    -) break ;;
+    h) printUsage /dev/stdout
+       echo >> /dev/stdout
+       printHelp /dev/stdout
+       exit 0 ;;
+    *) printUsage /dev/stderr; exit 2 ;;
+  esac
+done
+shift $((OPTIND-1))
+query="$@"
+
+if [ -z "$query" ]; then
+  query="-u `whoami`";
+fi
+
+while true; do
+  if [ ! $batch ]; then
+    clear
+  fi
+  qstat $query
+  echo
+  echo -n "total: "
+  qselect $query | wc -l
+
+  if [ $batch ]; then
+    break
+  else
+    sleep $refresh
+  fi
+done
+exit 0
