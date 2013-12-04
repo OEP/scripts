@@ -23,7 +23,7 @@ function printHelp() {
   echo >> $1
   echo "Refresh interval is ignored in batch mode." >> $1
   echo >> $1
-  echo "The query may be any arguments to give to both qselect and qstat." >>$1
+  echo "The query may be any valid arguments for qselect." >>$1
   echo >> $1
   echo "If no query is given, monitor current user's jobs." >> $1
   echo >> $1
@@ -37,7 +37,7 @@ function printHelp() {
   echo "  $> $name -- -u user1,user2" >> $1
 }
 
-while getopts 'hbr:' opt; do
+while getopts 'hbr:s:' opt; do
   case $opt in
     r) refresh="$OPTARG" ;;
     s) states="$OPTARG" ;;
@@ -61,7 +61,7 @@ while true; do
   if [ ! $batch ]; then
     clear
   fi
-  qstat $query
+  qselect $query -s $states | xargs --no-run-if-empty qstat -r
   echo
   echo -n "total: "
   qselect $query | wc -l
