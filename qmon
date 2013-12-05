@@ -6,35 +6,35 @@ query=''
 refresh=30
 
 function printUsage() {
-  echo "Usage: $name [-hb] [-r interval] [[--] query]" >> $1
+  echo "Usage: $name [-hb] [-r interval] [[--] query]"
 }
 
 function printHelp() {
   echo "Monitor PBS jobs semi-interactively."
-  echo >> $1
-  echo "By default, prints a list of running jobs at the top and a" >> $1
-  echo "total count for the jobs matching the query." >> $1
-  echo >> $1
-  echo "Options:" >> $1
-  echo "  -r  Set refresh interval (seconds)" >> $1
-  echo "  -s  States of jobs to show in task list" >> $1
-  echo "  -b  Batch mode (no refresh)" >> $1
-  echo "  -h  Show this help message" >> $1
-  echo >> $1
-  echo "Refresh interval is ignored in batch mode." >> $1
-  echo >> $1
-  echo "The query may be any valid arguments for qselect." >>$1
-  echo >> $1
-  echo "If no query is given, monitor current user's jobs." >> $1
-  echo >> $1
-  echo "Note that if you use a custom query involving flags, you must escape" >> $1
-  echo "them using --." >> $1
-  echo >> $1
-  echo "Examples:" >> $1
-  echo "  Change refresh rate to 45 seconds:" >> $1
-  echo "  $> $name -r 45" >> $1
-  echo "  Monitor two users' jobs:" >> $1
-  echo "  $> $name -- -u user1,user2" >> $1
+  echo
+  echo "By default, prints a list of running jobs at the top and a"
+  echo "total count for the jobs matching the query."
+  echo
+  echo "Options:"
+  echo "  -r  Set refresh interval (seconds)"
+  echo "  -s  States of jobs to show in task list"
+  echo "  -b  Batch mode (no refresh)"
+  echo "  -h  Show this help message"
+  echo
+  echo "Refresh interval is ignored in batch mode."
+  echo
+  echo "The query may be any valid arguments for qselect."
+  echo
+  echo "If no query is given, monitor current user's jobs."
+  echo
+  echo "Note that if you use a custom query involving flags, you must escape"
+  echo "them using --."
+  echo
+  echo "Examples:"
+  echo "  Change refresh rate to 45 seconds:"
+  echo "  $> $name -r 45"
+  echo "  Monitor two users' jobs:"
+  echo "  $> $name -- -u user1,user2"
 }
 
 while getopts 'hbr:s:' opt; do
@@ -43,11 +43,11 @@ while getopts 'hbr:s:' opt; do
     s) states="$OPTARG" ;;
     b) batch=1 ;;
     -) break ;;
-    h) printUsage /dev/stdout
-       echo >> /dev/stdout
-       printHelp /dev/stdout
+    h) printUsage
+       echo
+       printHelp
        exit 0 ;;
-    *) printUsage /dev/stderr; exit 2 ;;
+    *) printUsage >> /dev/stderr; exit 2 ;;
   esac
 done
 shift $((OPTIND-1))
