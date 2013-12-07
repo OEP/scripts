@@ -57,6 +57,9 @@ if [ -z "$query" ]; then
   query="-u `whoami`";
 fi
 
+type qselect &> /dev/null || { echo "$name: qselect: command not found"; exit 1; }
+type qstat &> /dev/null || { echo "$name: qstat: command not found"; exit 1; }
+
 while true; do
   if [ ! $batch ]; then
     clear
