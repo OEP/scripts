@@ -10,31 +10,29 @@ function printUsage() {
 }
 
 function printHelp() {
-  echo "Monitor PBS jobs semi-interactively."
-  echo
-  echo "By default, prints a list of running jobs at the top and a"
-  echo "total count for the jobs matching the query."
-  echo
-  echo "Options:"
-  echo "  -r  Set refresh interval (seconds)"
-  echo "  -s  States of jobs to show in task list"
-  echo "  -b  Batch mode (no refresh)"
-  echo "  -h  Show this help message"
-  echo
-  echo "Refresh interval is ignored in batch mode."
-  echo
-  echo "The query may be any valid arguments for qselect."
-  echo
-  echo "If no query is given, monitor current user's jobs."
-  echo
-  echo "Note that if you use a custom query involving flags, you must escape"
-  echo "them using --."
-  echo
-  echo "Examples:"
-  echo "  Change refresh rate to 45 seconds:"
-  echo "  $> $name -r 45"
-  echo "  Monitor two users' jobs:"
-  echo "  $> $name -- -u user1,user2"
+  cat <<EOF
+Monitor PBS jobs semi-interactively.
+
+By default, prints a list of running jobs at the top and a total count for the
+jobs matching the query.
+
+Options:
+  -r  Set refresh interval (seconds)
+  -s  States of jobs to show in task list
+  -b  Batch mode (no refresh)
+  -h  Show this help message
+
+Refresh interval is ignored in batch mode.  The query may be any valid
+arguments for qselect.  If no query is given, monitor current user's jobs.
+Note that if you use a custom query involving flags, you must escape them using
+two dashes (--).
+
+Examples:
+  Change refresh rate to 45 seconds:
+  $> $name -r 45
+  Monitor two users' jobs:
+  $> $name -- -u user1,user2
+EOF
 }
 
 while getopts 'hbr:s:' opt; do
