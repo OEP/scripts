@@ -1,0 +1,44 @@
+#! /bin/bash
+#
+# Twitch.tv broadcast script.
+#
+# Adapted from:
+# https://obsproject.com/forum/viewtopic.php?f=18&t=4594
+#
+set -eu
+
+inres=$(xrandr | grep "*" | awk '{ print $1; }')
+outres=$inres
+fps="30"
+
+key=$(cat ~/.twitch_key)
+
+while getopts 'i:o:' opt; do
+  case $opt in
+      i) inres="$OPTARG" ;;
+      o) outres="$OPTARG" ;;
+  esac
+done
+shift $((OPTIND-1))
+
+avconv \
+  -f x11grab \
+  -s $inres \
+  -r "$fps" \
+  -i :0.0 \
+  -f alsa \
+  -ac 2 \
+  -i pulse \
+  -vcodec libx264 \
+  -s $outres \
+  -acodec libmp3lame \
+  -ar 44100 \
+  -threads 4 \
+  -qscale 8 \
+  -b 712000 \
+  -bufsize 1024k \
+  -minrate 5120k \
+  -maxrate 8192k \
+  -ac 2 \
+  -f flv \
+  "rtmp://live.justin.tv/app/$key"
