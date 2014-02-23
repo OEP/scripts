@@ -7,30 +7,68 @@
 #
 set -eu
 
+offsetx=0
+offsety=0
+
 inres=$(xrandr | grep "*" | awk '{ print $1; }')
-outres=$inres
-fps="30"
+inwidth=$(echo -n $inres | cut -d x -f 1)
+inheight=$(echo -n $inres | cut -d x -f 2)
+logfile=$(mktemp -t twitch-stream.XXXXX --suffix=.log)
+
+outres=
+fps=30
+display="$DISPLAY"
 
 key=$(cat ~/.twitch_key)
 
-while getopts 'i:o:' opt; do
+function _parse_xwininfo_prop() {
+  xwininfo -id "$2" | grep "$1" | cut -d : -f 2 | sed -e "s/ *//g"
+}
+
+function _select_window() {
+  echo "Select a window..."
+  echo
+  local id=$(xwininfo | grep "Window id" | \
+                        sed -e "s/.*Window id: //" -e 's/ .*$//g'
+  )
+  inwidth=$(_parse_xwininfo_prop "Width" $id)
+  inheight=$(_parse_xwininfo_prop "Height" $id)
+  offsetx=$(_parse_xwininfo_prop "Absolute upper-left X" $id)
+  offsety=$(_parse_xwininfo_prop "Absolute upper-left Y" $id)
+}
+
+while getopts 'i:o:s' opt; do
   case $opt in
       i) inres="$OPTARG" ;;
       o) outres="$OPTARG" ;;
+      s) _select_window ;;
   esac
 done
 shift $((OPTIND-1))
+
+# reformat input resolution in case width or height has changed
+inres="$inwidth""x""$inheight"
+
+# set output resolution if not previously done
+if [ -z "$outres" ]; then
+  outres="$inres"
+fi
+
+echo "Offset: ($offsetx, $offsety)"
+echo "Input resolution: $inres"
+echo "Output resolution: $outres"
+echo "Stream log: $logfile"
 
 avconv \
   -f x11grab \
   -s $inres \
   -r "$fps" \
-  -i :0.0 \
+  -i "$display""+""$offsetx,$offsety" \
   -f alsa \
   -ac 2 \
   -i pulse \
   -vcodec libx264 \
-  -s $outres \
+  -s "$outres" \
   -acodec libmp3lame \
   -ar 44100 \
   -threads 4 \
@@ -41,4 +79,4 @@ avconv \
   -maxrate 8192k \
   -ac 2 \
   -f flv \
-  "rtmp://live.justin.tv/app/$key"
+  "rtmp://live.justin.tv/app/$key" 2>$logfile
