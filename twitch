@@ -19,28 +19,39 @@ outres=
 fps=30
 display="$DISPLAY"
 
+windowid=
+windowname=
+
 key=$(cat ~/.twitch_key)
 
 function _parse_xwininfo_prop() {
   xwininfo -id "$2" | grep "$1" | cut -d : -f 2 | sed -e "s/ *//g"
 }
 
+function _set_window() {
+  windowid="$1"
+  windowname=$(xwininfo -id $windowid | grep "Window id" \
+                                      | cut -d : -f 1,2 --complement \
+                                      | cut -d \" -f 2)
+  inwidth=$(_parse_xwininfo_prop "Width" $windowid)
+  inheight=$(_parse_xwininfo_prop "Height" $windowid)
+  offsetx=$(_parse_xwininfo_prop "Absolute upper-left X" $windowid)
+  offsety=$(_parse_xwininfo_prop "Absolute upper-left Y" $windowid)
+}
+
 function _select_window() {
   echo "Select a window..."
-  echo
   local id=$(xwininfo | grep "Window id" | \
                         sed -e "s/.*Window id: //" -e 's/ .*$//g'
   )
-  inwidth=$(_parse_xwininfo_prop "Width" $id)
-  inheight=$(_parse_xwininfo_prop "Height" $id)
-  offsetx=$(_parse_xwininfo_prop "Absolute upper-left X" $id)
-  offsety=$(_parse_xwininfo_prop "Absolute upper-left Y" $id)
+  _set_window $id
 }
 
-while getopts 'i:o:s' opt; do
+while getopts 'i:o:sw:' opt; do
   case $opt in
       i) inres="$OPTARG" ;;
       o) outres="$OPTARG" ;;
+      w) _set_window "$OPTARG" ;;
       s) _select_window ;;
   esac
 done
@@ -54,6 +65,17 @@ if [ -z "$outres" ]; then
   outres="$inres"
 fi
 
+# give a hint as to what we're broadcasting
+if [ -n "$windowid" ]; then
+  echo "Selected window: '$windowname'"
+  echo "Window ID: $windowid"
+  echo
+else
+  echo "Broadcasting screen..."
+  echo
+fi
+
+# a little technical information
 echo "Offset: ($offsetx, $offsety)"
 echo "Input resolution: $inres"
 echo "Output resolution: $outres"
