@@ -7,23 +7,6 @@
 #
 set -eu
 
-offsetx=0
-offsety=0
-
-inres=$(xrandr | grep "*" | awk '{ print $1; }')
-inwidth=$(echo -n $inres | cut -d x -f 1)
-inheight=$(echo -n $inres | cut -d x -f 2)
-logfile=$(mktemp -t twitch-stream.XXXXX --suffix=.log)
-
-outres=
-fps=30
-display="$DISPLAY"
-
-windowid=
-windowname=
-
-key=$(cat ~/.twitch_key)
-
 function _parse_xwininfo_prop() {
   xwininfo -id "$2" | grep "$1" | cut -d : -f 2 | sed -e "s/ *//g"
 }
@@ -47,15 +30,90 @@ function _select_window() {
   _set_window $id
 }
 
-while getopts 'i:o:sw:' opt; do
+function _twitch_key_error() {
+  cat <<EOF
+This script needs your stream key to work. Set this up by visiting your
+Twitch dashboard at:
+
+  http://www.twitch.tv/<username>/dashboard/streamkey
+
+Where <username> is your Twitch username.
+
+Install the key with this command:
+
+  echo "my-twitch-key" > ~/.twitch_key
+
+EOF
+}
+
+function _print_usage() {
+  cat <<EOF
+Usage: $(basename $0) [-i res] [-o res] [-w window_id] [-s]
+EOF
+}
+
+function _print_help() {
+  _print_usage
+  cat <<EOF
+
+Broadcast to a Twitch stream.
+
+With no options broadcast the entire desktop. Note that window selections are
+static. Moving a window will not continue to broadcast it, it will continue
+to broadcast that same portion of your screen.
+
+OPTIONS
+  
+  -i resolution
+      Set input resolution to 'resolution', which has the form WIDTHxHEIGHT.
+
+  -o resolution
+      Set the output resolution to 'resolution'.
+
+  -w id
+      Set options to broadcast to a given window ID. This is useful only if
+      you know the window ID.
+
+  -s
+      Interactively select which window to broadcast.
+EOF
+}
+
+offsetx=0
+offsety=0
+
+inres=$(xrandr | grep "*" | awk '{ print $1; }')
+inwidth=$(echo -n $inres | cut -d x -f 1)
+inheight=$(echo -n $inres | cut -d x -f 2)
+logfile=$(mktemp -t twitch-stream.XXXXX --suffix=.log)
+
+outres=
+fps=30
+display="$DISPLAY"
+
+windowid=
+windowname=
+
+# parse arguments
+while getopts 'hi:o:sw:' opt; do
   case $opt in
       i) inres="$OPTARG" ;;
       o) outres="$OPTARG" ;;
       w) _set_window "$OPTARG" ;;
       s) _select_window ;;
+      h) _print_help; exit 0;;
+      ?) _print_usage > /dev/stderr; exit 1;;
   esac
 done
 shift $((OPTIND-1))
+
+# setup twitch key
+if [ -e ~/.twitch_key ]; then
+  key=$(cat ~/.twitch_key)
+else
+  _twitch_key_error > /dev/stderr
+  exit 1
+fi
 
 # reformat input resolution in case width or height has changed
 inres="$inwidth""x""$inheight"
