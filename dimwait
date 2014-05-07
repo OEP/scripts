@@ -17,7 +17,7 @@ function restore() {
   gsettings set org.gnome.settings-daemon.plugins.power idle-dim "$idledim"
 }
 
-trap restore SIGINT SIGTERM
+trap restore EXIT 
 
 gsettings set org.gnome.settings-daemon.plugins.power idle-dim false
 sleep "$sleeptime"
