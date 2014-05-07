@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# dimwait -- disable screen dimming for a while. Should work on systems based
+# on GNOME (e.g. Unity).
+#
+set -eu
+
+if [ $# -ne 1 ]; then
+  echo "Usage: $(basename $0) wait-period"
+  exit 1
+fi
+
+sleeptime="$1"
+idledim=$(gsettings get org.gnome.settings-daemon.plugins.power idle-dim)
+
+function restore() {
+  gsettings set org.gnome.settings-daemon.plugins.power idle-dim "$idledim"
+}
+
+trap restore SIGINT SIGTERM
+
+gsettings set org.gnome.settings-daemon.plugins.power idle-dim false
+sleep "$sleeptime"
+restore
+exit 0
