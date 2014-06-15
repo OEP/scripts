@@ -1,0 +1,46 @@
+#!/bin/bash
+set -eu
+
+name=$(basename $0)
+destination="."
+
+function printUsage() {
+  echo "Usage: $name [-d destination] tree1 [tree2...]"
+}
+
+function printHelp() {
+  cat <<EOF
+Extract Gramps family trees as uncompressed Gramps XML.
+
+Gramps is a genealogical research software:
+
+https://gramps-project.org/
+
+Thanks to Sebastian Schubert for the original idea.
+EOF
+}
+
+while getopts 'xhd:' opt; do
+  case $opt in
+    h) printUsage
+       echo
+       printHelp
+       exit 0 ;;
+    d) destination="$OPTARG" ;;
+    *) printUsage >> /dev/stderr; exit 2 ;;
+  esac
+done
+shift $((OPTIND-1))
+
+if [ $# -eq 0 ]; then
+  printUsage >>/dev/stderr
+  exit 1
+fi
+
+cd "$destination"
+for tree in $@; do
+  tmp=$(mktemp)
+  gramps -q -y -e "$tmp" -f gramps -O "$tree"
+  gunzip < "$tmp" > "$tree".gramps
+  rm "$tmp"
+done
