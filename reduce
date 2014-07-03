@@ -7,6 +7,7 @@ REDUCER_CHOICES = (
   'cat',
   'sum',
   'product',
+  'average',
 )
 
 def number(x=None):
@@ -17,13 +18,19 @@ def number(x=None):
   except ValueError:
     return float(x)
 
+def average(sequence):
+  result = 0.0
+  for i, item in enumerate(sequence):
+    result += (item - result) / float(i + 1)
+  return result
+
 def main():
   parser = _get_parser()
   args = parser.parse_args()
   reducer, cast = _get_reducer(args.reducer)
  
   if not args.files:
-    print reduce(reducer, _rtrim(sys.stdin, cast), cast())
+    print reducer(_rtrim(sys.stdin, cast))
     sys.exit(0)
 
   reduction = cast()
@@ -32,7 +39,7 @@ def main():
       fp = sys.stdin
     else:
       fp = open(p)
-    reduction = reduce(reducer, _rtrim(fp, cast), reduction)
+    reduction = reducer(_rtrim(fp, cast))
     fp.close()
   print reduction 
 
@@ -42,11 +49,13 @@ def _rtrim(fp, cast):
 
 def _get_reducer(reducer):
   if reducer == 'sum':
-    return operator.add, number
+    return sum, number
   elif reducer == 'product':
-    return operator.mul, number
+    return lambda stream: reduce(operator.mul, stream, number()), number
   elif reducer == 'cat':
-    return operator.add, str
+    return lambda stream: reduce(operator.add, stream, str()), str
+  elif reducer == 'average':
+    return average, number
   assert False, "invalid reducer: %s" % reducer
 
 def _get_parser():
