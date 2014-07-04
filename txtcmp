@@ -1,23 +1,20 @@
 #!/usr/bin/env python
 
 import sys
-
-def lookup(i, j, t):
-  if i < 0 or j < 0:
-    return 0
-  return t[i][j]
+from collections import defaultdict
 
 def lcs_length(str1, str2):
   if not str1 or not str2:
     return 0
-  table = [[0] * len(str2)] * len(str1)
-  for i in range(len(str1)):
-    for j in range(len(str2)):
-      if str1[i] == str2[j]:
-        table[i][j] = lookup(i - 1, j - 1, table) + 1
+  table = defaultdict(int)
+  for i, c1 in enumerate(str1):
+    for j, c2 in enumerate(str2):
+      ij = (i, j)
+      if c1 == c2:
+        table[ij] = 1 + table[(i - 1, j - 1)]
       else:
-        table[i][j] = max(lookup(i - 1, j, table), lookup(i, j - 1, table))
-  return table[-1][-1]
+        table[ij] = max(table[(i - 1, j)], table[(i, j - 1)])
+  return table[(len(str1) - 1, len(str2) - 1)]
 
 _files = {}
 def filter_lines(filename):
@@ -26,7 +23,7 @@ def filter_lines(filename):
   lines = _files[filename] = []
   with open(filename) as fp:
     lines[:] = [' '.join(line.split()) for line in fp]
-    lines[:] = [line for line in lines if line]
+    lines[:] = [hash(line) for line in lines if line]
   return lines
 
 def score(a, b):
