@@ -1,46 +1,37 @@
 #!/usr/bin/env python
 
 import sys
-import re
-import functools
 
-g_Files = dict()
-
-def LCSLength(str1, str2):
-  if len(str1)==0 or len(str2)==0:
+def lookup(i, j, t):
+  if i < 0 or j < 0:
     return 0
+  return t[i][j]
 
-  def lookup(i, j, t):
-    if i < 0 or j < 0: return 0
-    return t[i][j]
-
-  table = [ [0]*len(str2) ] * len(str1)
-
+def lcs_length(str1, str2):
+  if not str1 or not str2:
+    return 0
+  table = [[0] * len(str2)] * len(str1)
   for i in range(len(str1)):
     for j in range(len(str2)):
       if str1[i] == str2[j]:
-        table[i][j] = lookup(i-1,j-1,table) + 1
+        table[i][j] = lookup(i - 1, j - 1, table) + 1
       else:
-        table[i][j] = max(lookup(i-1, j, table), lookup(i, j-1, table))
+        table[i][j] = max(lookup(i - 1, j, table), lookup(i, j - 1, table))
   return table[-1][-1]
 
+_files = {}
 def filter_lines(filename):
-  global g_Files
-  if filename in g_Files: return g_Files[filename]
-
-  fp = open(filename)
-  linebuffer = g_Files.setdefault(filename, list())
-  for line in fp:
-    line = line.strip()
-    line = re.sub("[ \t]+", " ", line)
-    if line != "":
-      linebuffer.append(line)
-  fp.close()
-  return linebuffer
+  if filename in _files:
+    return _files[filename]
+  lines = _files[filename] = []
+  with open(filename) as fp:
+    lines[:] = [' '.join(line.split()) for line in fp]
+    lines[:] = [line for line in lines if line]
+  return lines
 
 def score(a, b):
-  maxLines = max( len(a), len(b) )
-  lcs = LCSLength(a,b)
+  maxLines = max(len(a), len(b))
+  lcs = lcs_length(a,b)
   return float(lcs) / maxLines
 
 def main():
@@ -49,12 +40,11 @@ def main():
     sys.exit(1)
   
   files = sys.argv[1:]
-
-  for i in range( len(files) ):
+  for i in range(len(files)):
     a = filter_lines(files[i])
-    for j in range(i+1, len(files) ):
+    for j in range(i + 1, len(files)):
       b = filter_lines(files[j])
-      print "%f %s %s" % (score(a,b), files[i], files[j])
+      print "%f %s %s" % (score(a, b), files[i], files[j])
 
 if __name__ == "__main__":
   main()
