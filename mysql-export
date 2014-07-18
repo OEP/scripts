@@ -1,0 +1,130 @@
+#!/usr/bin/env python
+""" A script to aid in dumping data from a MySQL server a la mysqldump.
+"""
+import MySQLdb
+import MySQLdb.cursors
+import getpass
+from argparse import ArgumentParser, Action
+import sys
+
+def positive_int(arg):
+    x = int(arg)
+    if x <= 0:
+        raise ValueError('Must be at least 1')
+    return x
+
+class SetItemAction(Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        name, value = value.split('=', 2)
+        d = getattr(namespace, self.dest, {})
+        d[name] = value
+        setattr(namespace, self.dest, d)
+
+class RecordStore(object):
+    def schema(self, schema):
+        raise NotImplementedError
+
+    def add(self, record):
+        raise NotImplementedError
+
+    def close(self):
+        raise NotImplementedError
+
+class CsvStreamer(RecordStore):
+    def __init__(
+        self, stream, escape='\\', delimit=',', encapsulate='"'
+    ):
+        self.stream = stream
+        self.escape = escape
+        self.delimit = delimit
+        self.encapsulate = encapsulate
+
+    def _filter(self, items):
+        if self.encapsulate:
+            return [
+                self.encapsulate + str(item).replace(
+                    self.encapsulate, self.escape + self.encapsulate
+                ) + self.encapsulate
+                for item in items
+            ]
+        else:
+            return [str(item) for item in items]
+
+    def schema(self, schema):
+        self.add(schema)
+
+    def add(self, record):
+        record = self._filter(record)
+        self.stream.write(self.delimit.join(record) + '\n')
+
+    def close(self):
+        self.stream.close()
+
+def _main():
+    parser = _get_parser()
+    args = parser.parse_args()
+    if args.password:
+        args.password = getpass.getpass('Password: ')
+    args.user = args.user or getpass.getuser()
+    store = _get_store(args)
+    connection = _get_connection(args)
+    try:
+        _export(connection, store, args)
+    finally:
+        connection.close()
+
+def _export(connection, store, args):
+    sql = 'SELECT * FROM `%s`.`%s`' % (args.database, args.table)
+    if not args.limit is None:
+        sql += ' LIMIT %d' % args.limit
+    cursor = connection.cursor()
+    try:
+        cursor.execute(sql)
+        if args.schema:
+            store.schema([i[0] for i in cursor.description])
+        result = cursor.fetchone()
+        while result:
+            store.add(result)
+            result = cursor.fetchone()
+    finally:
+        cursor.close()
+
+def _get_store(args):
+    store = CsvStreamer(sys.stdout, **args.option)
+    return store
+
+def _get_connection(args):
+    kw = {
+        'user': args.user,
+        'host': args.host,
+        'port': args.port,
+        'cursorclass': MySQLdb.cursors.SSCursor,
+    }
+    if args.password:
+        kw['passwd'] = args.password
+    return MySQLdb.connect(**kw)
+
+def _get_parser():
+    parser = ArgumentParser(add_help=False)
+    parser.add_argument('-u', '--user', default=None,
+                        help='Database user to connect as')
+    parser.add_argument('-p', '--password', action='store_true',
+                        help='Whether or not to use a password')
+    parser.add_argument('-h', '--host', default='localhost',
+                        help='MySQL host to connect to')
+    parser.add_argument('-P', '--port', default=3306, type=int,
+                        help='Port to connect to')
+    parser.add_argument('-S', '--schema', action='store_true',
+                        help='Output column names')
+    parser.add_argument('-n', '--limit', type=positive_int, default=None,
+                        help='Only retrieve a certain number of rows')
+    parser.add_argument('-o', '--option', action=SetItemAction, default={},
+                        help='Options to pass to formatter')
+    parser.add_argument('database', help='Database to export')
+    parser.add_argument('table', help='Table to export')
+    parser.add_argument('--help', action='help',
+                        help='Show help screen')
+    return parser
+
+if __name__ == "__main__":
+    _main()
