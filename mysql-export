@@ -67,11 +67,14 @@ def _main():
         args.password = getpass.getpass('Password: ')
     args.user = args.user or getpass.getuser()
     store = _get_store(args)
-    connection = _get_connection(args)
     try:
-        _export(connection, store, args)
+        connection = _get_connection(args)
+        try:
+            _export(connection, store, args)
+        finally:
+            connection.close()
     finally:
-        connection.close()
+        store.close()
 
 def _export(connection, store, args):
     sql = 'SELECT * FROM `%s`.`%s`' % (args.database, args.table)
