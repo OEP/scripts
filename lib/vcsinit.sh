@@ -12,7 +12,6 @@ vcsinit() {
     dir=`mktemp -d -t vcsinit.XXXXXX`
   fi
   pushd "$dir" > /dev/null
-  mkdir -p git hg svn
 
   if type git 2>&1 >/dev/null; then
     mkdir git
