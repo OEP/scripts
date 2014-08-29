@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+set -o pipefail
+
+if [ $# -lt 1 -o $# -gt 2 ]; then
+  echo "Usage: `basename $0` expression [path]"
+  exit 1
+fi
+
+expression="$1"
+path="."
+if [ $# -ge 2 ]; then
+  path="$2"
+fi
+
+svn list -R "${path}" | grep -v "/$" | xargs grep "${expression}"
