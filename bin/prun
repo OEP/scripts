@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# pexec -- execute processing sketches in a more natural way
+#
+set -e
+
+if [ $# -lt 1 ]; then
+  echo "Usage: $(basename $0) sketch [options]" >&2
+  exit 1
+fi
+
+sketch=$(realpath $1)
+tmp=$(mktemp -dt prun.XXXXXX)
+exec processing-java --force --output=$tmp --run --sketch=$sketch
