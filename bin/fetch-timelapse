@@ -1,0 +1,40 @@
+#!/bin/bash
+set -u
+
+format='timelapse-%F-%T'
+ext=
+dir='.'
+
+print_usage() {
+  echo "Usage: $(basename $0) [-d dir] [-f format] url"
+}
+
+while getopts 'e:d:f:' opt; do
+  case $opt in
+    d) dir="$OPTARG" ;;
+    f) format="$OPTARG" ;;
+    e) ext="$OPTARG" ;;
+    *) print_usage >&2; exit 2 ;;
+  esac
+done
+shift $((OPTIND-1))
+
+if [ $# != 1 ]; then
+  print_usage >&2; exit 2
+fi
+
+url="$1"
+
+if [ -z "$ext" ]; then
+  basename="$(basename ${url})"
+  ext="${basename##*.}"
+fi
+fname="${dir}/$(date +${format}).${ext}"
+curl -L -s --fail "$url" > "$fname"
+rc=$?
+
+if [ $rc -ne 0 ]; then
+  rm -f "${fname}"
+fi
+
+exit $rc
