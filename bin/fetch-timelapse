@@ -30,6 +30,7 @@ if [ -z "$ext" ]; then
   ext="${basename##*.}"
 fi
 fname="${dir}/$(date +${format}).${ext}"
+mkdir -p "$(dirname $fname)"
 curl -L -s --fail "$url" > "$fname"
 rc=$?
 
