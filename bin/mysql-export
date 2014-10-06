@@ -78,6 +78,8 @@ def _main():
 
 def _export(connection, store, args):
     sql = 'SELECT * FROM `%s`.`%s`' % (args.database, args.table)
+    if not args.where is None:
+        sql += ' WHERE %s' % args.where
     if not args.limit is None:
         sql += ' LIMIT %d' % args.limit
     cursor = connection.cursor()
@@ -121,6 +123,8 @@ def _get_parser():
                         help='Output column names')
     parser.add_argument('-n', '--limit', type=positive_int, default=None,
                         help='Only retrieve a certain number of rows')
+    parser.add_argument('-W', '--where', default=None,
+                        help='Add a WHERE clause to the query.')
     parser.add_argument('-o', '--option', action=SetItemAction, default={},
                         help='Options to pass to formatter')
     parser.add_argument('database', help='Database to export')
