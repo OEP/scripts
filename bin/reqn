@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+#
+# Render TeX-like math expressions to other displayable formats.
+#
+# Supports whatever matplotlib normally supports in math mode.
+#
+# Examples:
+#
+#   reqn >foo.pdf <<< 'x^2'
+#   reqn -o foo.pdf <<< 'x^2'
+#   reqn -o foo.png -s 40
+#
+import matplotlib.pyplot as plt
+import argparse
+import sys
+
+def main():
+  parser = get_parser()
+  args = parser.parse_args()
+
+  if not args.format:
+    if args.output:
+      args.format = args.output.rsplit('.', 1)[-1]
+    else:
+      args.format = 'pdf'
+  if not args.input:
+    args.input = sys.stdin
+  else:
+    args.input = open(args.input)
+  if not args.output:
+    args.output = sys.stdout
+
+  def savefig():
+    plt.savefig(args.output, dpi=args.dpi, format=args.format,
+                bbox_inches='tight')
+
+  #
+  # Thanks to mmgp! See [1].
+  #
+  # [1]: https://stackoverflow.com/questions/14110709/#14163131
+  #
+  expression = args.input.read().strip()
+  fig = plt.figure()
+  plt.axis('off')
+  text = plt.text(0, 0, '$%s$' % expression, size=args.font_size)
+  savefig()
+
+  bbox = text.get_window_extent()
+  width, height = bbox.size / float(args.dpi) + 0.005
+  fig.set_size_inches((width, height))
+
+  #dy = (bbox.ymin/float(args.dpi))/height
+  #text.set_position((0, -dy))
+  savefig()
+
+def get_parser():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--input', '-i', help='Output file (default: stdin)')
+  parser.add_argument('--output', '-o', help='Output file (default: stdout)')
+  parser.add_argument('--format', '-f', help='Output format')
+  parser.add_argument('--font-size', '-s', help='Font size',
+                      default=20, type=int)
+  parser.add_argument('--dpi', '-d', help='DPI', default=300, type=int)
+  return parser
+
+if __name__ == "__main__":
+  main()
