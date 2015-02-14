@@ -2,17 +2,19 @@
 set -u
 
 format='timelapse-%F-%T'
+hierarchical_format='%Y/%m/%d/timelapse-%H-%M'
 ext=
 dir='.'
 
 print_usage() {
-  echo "Usage: $(basename $0) [-d dir] [-f format] url"
+  echo "Usage: $(basename $0) [-d dir] [-H|-f format] url"
 }
 
-while getopts 'e:d:f:' opt; do
+while getopts 'e:d:f:H' opt; do
   case $opt in
     d) dir="$OPTARG" ;;
     f) format="$OPTARG" ;;
+    H) format="$hierarchical_format" ;;
     e) ext="$OPTARG" ;;
     *) print_usage >&2; exit 2 ;;
   esac
