@@ -1,8 +1,8 @@
 #!/bin/bash
 set -u
 
-format='timelapse-%F-%T'
-hierarchical_format='%Y/%m/%d/timelapse-%H-%M'
+format='timelapse-%F-%H-%M-%S'
+hierarchical_format='%Y/%m/%d/timelapse-%H-%M-%S'
 ext=
 dir='.'
 
