@@ -39,7 +39,7 @@ fi
 
 cd "$destination"
 for tree in $@; do
-  tmp=$(mktemp)
+  tmp=`mktemp -t $name.XXXXXX`
   gramps -q -y -e "$tmp" -f gramps -O "$tree"
   gunzip < "$tmp" > "$tree".gramps
   rm "$tmp"
