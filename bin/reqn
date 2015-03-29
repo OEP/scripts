@@ -39,7 +39,7 @@ def main():
   #
   # [1]: https://stackoverflow.com/questions/14110709/#14163131
   #
-  expression = args.input.read().strip()
+  expression = args.input.read().strip().replace('\n', '')
   fig = plt.figure()
   plt.axis('off')
   text = plt.text(0, 0, '$%s$' % expression, size=args.font_size)
