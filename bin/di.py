@@ -4,8 +4,10 @@ import argparse
 from urllib.request import urlopen
 import json
 import sys
+import time
 
 DEFAULT_URL = 'http://listen.di.fm/public2'
+DEFAULT_DELAY = 0.5
 
 
 def main():
@@ -22,6 +24,7 @@ def main():
         name = station['name']
         playlist = station['playlist']
 
+        time.sleep(args.delay)
         fp = urlopen(playlist)
         try:
             pls = fp.read().decode('utf-8')
@@ -59,6 +62,8 @@ def _get_parser():
     parser.add_argument('-u', '--url', default=DEFAULT_URL,
                         help='Playlist download URL')
     parser.add_argument('-o', '--output', help='Output file')
+    parser.add_argument('-d', '--delay', type=float, default=DEFAULT_DELAY,
+                        help='Time to delay between fetching playlists')
     return parser
 
 if __name__ == '__main__':
