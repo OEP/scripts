@@ -1,0 +1,83 @@
+#!/bin/bash
+set -eu
+
+verbose=1
+probesize=5000000
+framerate=24
+png=''
+format='png'
+gamma=1.1
+bitrate='50M'
+prog="`basename $0`"
+work=`mktemp -d -t mkmovie.XXXXX`
+trap "rm -rf ${work}" EXIT
+
+msg() {
+    echo "${prog}: $@"
+}
+
+info() {
+    if [ -n "${verbose}" ]; then
+        msg "$@"
+    fi
+}
+
+error() {
+    msg "$@"
+}
+
+fail() {
+    error >&2 "$@"
+    exit 1
+}
+
+usage() {
+    echo "Usage: $prog output frame1 frame2 [frame3...]"
+}
+
+confirm() {
+    echo -n "$@ (yes/no): "
+    while true; do
+        read response
+        case $response in
+            yes) return;;
+            no) exit 0;;
+            *) echo -n "Enter 'yes' or 'no'.";;
+        esac
+    done
+}
+
+if [ $# -le 3 ]; then
+    usage >&2
+    exit 1
+fi
+
+# Get output name
+output="$1"
+shift
+
+if [ -e "${output}" ]; then
+    confirm "Overwrite ${output}?"
+fi
+
+# Copy the input images into an intermediate format.
+frame=1
+for image in "$@"; do
+    info "Processing ${image}..."
+    dest="`printf image.%05d.$format ${frame}`"
+    oiiotool "${image}" -o "${work}/work.$format"
+    convert "${work}/work.$format" -gamma "$gamma" "${work}/${dest}"
+    frame=$(( $frame + 1 ))
+done
+
+# Create the movie
+opts="-y -probesize ${probesize} -r ${framerate}"
+opts="${opts} -i ${work}/image.%05d.$format"
+
+if [ -z "$png" ]; then
+    opts="${opts} -vcodec mjpeg -b:v ${bitrate} -r ${framerate}"
+else
+    opts="${opts} -vcodec png -qscale:v 1 -b:v ${bitrate} -pix_fmt yuv444p -r ${framerate}"
+fi
+
+ffmpeg ${opts} "${output}"
