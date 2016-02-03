@@ -35,16 +35,17 @@ def main():
         for stream in streams:
             entries.append((key, name, stream))
 
+    # Prep our output file
     if isinstance(args.output, str):
         output = open(args.output, 'w')
     else:
         output = sys.stdout
 
+    # Output the playlist
     output.write('#EXTM3U\n')
-
-    for entry in entries:
+    for entry in sorted(entries):
         key, name, stream = entry
-        output.write('#EXTINF:-1,%s\n' % name)
+        output.write('#EXTINF:-1,%s (%s)\n' % (name, key))
         output.write(stream + '\n')
 
 
