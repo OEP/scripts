@@ -47,6 +47,10 @@ confirm() {
     done
 }
 
+get_resolution() {
+    convert $1 -print "%wx%h\n" /dev/null
+}
+
 if [ $# -le 3 ]; then
     usage >&2
     exit 1
@@ -62,8 +66,18 @@ fi
 
 # Copy the input images into an intermediate format.
 frame=1
+resolution=''
 for image in "$@"; do
     info "Processing ${image}..."
+    image_res=`get_resolution $image`
+    if [ -n "$resolution" ]; then
+        if [ "$image_res" != "$resolution" ]; then
+            info "Skipped (Bad resolution $image_res)"
+            continue
+        fi
+    else
+        resolution=$image_res
+    fi
     dest="`printf image.%05d.$format ${frame}`"
     oiiotool "${image}" -o "${work}/work.$format"
     convert "${work}/work.$format" -gamma "$gamma" "${work}/${dest}"
