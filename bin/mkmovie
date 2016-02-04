@@ -74,10 +74,11 @@ done
 opts="-y -probesize ${probesize} -r ${framerate}"
 opts="${opts} -i ${work}/image.%05d.$format"
 
+opts="${opts} -r ${framerate}"
 if [ -z "$png" ]; then
-    opts="${opts} -vcodec mjpeg -b:v ${bitrate} -r ${framerate}"
+    opts="${opts} -vcodec mjpeg -b:v ${bitrate}"
 else
-    opts="${opts} -vcodec png -qscale:v 1 -b:v ${bitrate} -pix_fmt yuv444p -r ${framerate}"
+    opts="${opts} -vcodec png -qscale:v 1 -b:v ${bitrate} -pix_fmt yuv444p"
 fi
 
 ffmpeg ${opts} "${output}"
